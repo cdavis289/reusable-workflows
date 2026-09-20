@@ -592,6 +592,7 @@ jobs:
         if: inputs.push && steps.check-attestations.outputs.has_vuln != 'true'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # tag=v0.36.0
         with:
+          version: v0.74.0
           exit-code: ${{ inputs.scan-severity != '' && '1' || '0' }}
           format: sarif
           ignore-unfixed: true
@@ -607,6 +608,7 @@ jobs:
         if: inputs.push && steps.check-attestations.outputs.has_vuln != 'true'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # tag=v0.36.0
         with:
+          version: v0.74.0
           exit-code: 0
           format: json
           ignore-unfixed: true
@@ -618,6 +620,7 @@ jobs:
         if: inputs.push && steps.check-attestations.outputs.has_vuln != 'true'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # tag=v0.36.0
         with:
+          version: v0.74.0
           exit-code: 0
           format: table
           ignore-unfixed: true
