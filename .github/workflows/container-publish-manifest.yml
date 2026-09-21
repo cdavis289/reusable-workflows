@@ -60,6 +60,10 @@ on: # yamllint disable-line rule:truthy
         description: Bare tag names (space-separated)
         value: ${{ jobs.metadata.outputs.tag-names }}
 
+      primary-image-tag:
+        description: Primary bare image tag for downstream builds
+        value: ${{ jobs.metadata.outputs.primary-image-tag }}
+
       is-latest:
         description: Whether this is the latest release
         value: ${{ jobs.metadata.outputs.is-latest }}

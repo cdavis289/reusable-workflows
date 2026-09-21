@@ -38,6 +38,10 @@ on: # yamllint disable-line rule:truthy
         description: Bare tag names only (space-separated, e.g. "1.2.3 1.2 1 latest")
         value: ${{ jobs.metadata.outputs.tag-names }}
 
+      primary-image-tag:
+        description: Primary bare image tag
+        value: ${{ jobs.metadata.outputs.primary-image-tag }}
+
       version:
         description: Calculated semantic version
         value: ${{ jobs.metadata.outputs.version }}
@@ -70,6 +74,7 @@ jobs:
       is-latest: ${{ steps.determine-latest.outputs.is-latest }}
       full-name: ghcr.io/${{ inputs.image-name }}
       tag-names: ${{ steps.tags.outputs.tag-names }}
+      primary-image-tag: ${{ steps.tags.outputs.primary-image-tag }}
       commit-epoch: ${{ steps.commit-timestamp.outputs.epoch }}
 
     steps:
@@ -303,6 +308,8 @@ jobs:
           # Also output bare tag names space-separated (for use by mirror workflow)
           TAG_NAMES=$(printf "%b" "$TAGS" | sed 's/type=raw,value=//g' | tr '\n' ' ' | sed 's/ $//')
           echo "tag-names=$TAG_NAMES" >> $GITHUB_OUTPUT
+          PRIMARY_IMAGE_TAG=$(printf "%b" "$TAGS" | head -n1 | sed 's/type=raw,value=//')
+          echo "primary-image-tag=$PRIMARY_IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Generate Docker metadata
         id: meta
