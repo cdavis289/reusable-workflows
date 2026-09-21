@@ -16,7 +16,7 @@ on: # yamllint disable-line rule:truthy
     outputs:
       image_name:
         description: The container image name
-        value: felddy/reusable-workflow
+        value: cdavis289/reusable-workflow
       platforms:
         description: The platforms to build (JSON array string)
         value: ${{ inputs.platforms }}
