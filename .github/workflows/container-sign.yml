@@ -76,7 +76,7 @@ permissions: {}
 jobs:
   sign:
     name: Sign Container Image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     outputs:
       signature-ref: ${{ steps.sign.outputs.signature-ref }}

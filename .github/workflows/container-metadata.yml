@@ -61,7 +61,7 @@ on: # yamllint disable-line rule:truthy
 jobs:
   metadata:
     name: Generate Metadata
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     permissions:
       contents: read
