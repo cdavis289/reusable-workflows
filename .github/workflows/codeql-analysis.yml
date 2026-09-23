@@ -38,7 +38,7 @@ jobs:
       # Note that a duplicate of this step must be added at the top of
       # each job.
       - name: Apply standard cisagov job preamble
-        uses: cisagov/action-job-preamble@f3e1d43556bc9fef1fa4d6f27fa88b1b5c82c788 # tag=v1.2.0
+        uses: cisagov/action-job-preamble@d6daff3b40139a4cb03e4999557b26c62137d047 # develop pin
         with:
           check_github_status: "true"
           # This functionality is poorly implemented and has been
@@ -90,7 +90,7 @@ jobs:
 
     steps:
       - name: Apply standard cisagov job preamble
-        uses: cisagov/action-job-preamble@f3e1d43556bc9fef1fa4d6f27fa88b1b5c82c788 # tag=v1.2.0
+        uses: cisagov/action-job-preamble@d6daff3b40139a4cb03e4999557b26c62137d047 # develop pin
         with:
           # This functionality is poorly implemented and has been
           # causing problems due to the MITM implementation hogging or
