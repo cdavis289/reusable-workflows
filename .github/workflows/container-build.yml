@@ -188,7 +188,7 @@ jobs:
   # Calculate SOURCE_DATE_EPOCH for reproducible builds
   calculate-source-date-epoch:
     name: Calculate SOURCE_DATE_EPOCH
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     permissions:
       contents: read
@@ -235,7 +235,7 @@ jobs:
   # Determine visibility based on presence of private-package-token
   determine-visibility:
     name: Determine Visibility
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     permissions:
       contents: none
@@ -281,10 +281,10 @@ jobs:
       link-repository: ${{ needs.determine-visibility.outputs.link-repository == 'true' }}
 
   # Map platforms to native GitHub-hosted runners where available.
-  # Falls back to ubuntu-latest (+ QEMU) for platforms without a native runner.
+  # Falls back to ubuntu-24.04 (+ QEMU) for platforms without a native runner.
   generate-matrix:
     name: Generate platform matrix
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     permissions:
       contents: none
@@ -310,7 +310,7 @@ jobs:
               platform: .,
               runner: (
                 if . == "linux/arm64/v8" or . == "linux/arm64" then "ubuntu-24.04-arm"
-                else "ubuntu-latest"
+                else "ubuntu-24.04"
                 end
               )
             }) | {include: .}

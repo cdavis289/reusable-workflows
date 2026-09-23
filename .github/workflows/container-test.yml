@@ -8,7 +8,7 @@ name: Test container image
 #
 # The workflow fans out across all requested platforms using a matrix strategy
 # mirroring the pattern used in container-build.yml.  QEMU emulation is set up
-# per matrix job so non-native platforms can be tested on ubuntu-latest runners.
+# per matrix job so non-native platforms can be tested on ubuntu-24.04 runners.
 #
 # Python dependency installation supports both uv (preferred) and pip:
 #   - auto (default): uses uv if uv.lock is present, otherwise pip
@@ -131,7 +131,7 @@ jobs:
   # This mirrors the pattern used in container-build.yml.
   generate-matrix:
     name: Generate platform matrix
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     permissions:
       contents: none
@@ -152,7 +152,7 @@ jobs:
         id: set-matrix
         run: |
           # Map each platform to its native GitHub-hosted runner where available.
-          # Falls back to ubuntu-latest (+ QEMU emulation) for platforms without
+          # Falls back to ubuntu-24.04 (+ QEMU emulation) for platforms without
           # a native runner.
           PLATFORMS_JSON='${{ inputs.platforms }}'
           MATRIX=$(echo "${PLATFORMS_JSON}" | jq -c '
@@ -160,7 +160,7 @@ jobs:
               platform: .,
               runner: (
                 if . == "linux/arm64/v8" or . == "linux/arm64" then "ubuntu-24.04-arm"
-                else "ubuntu-latest"
+                else "ubuntu-24.04"
                 end
               )
             }) | {include: .}
@@ -197,7 +197,7 @@ jobs:
             releases.astral.sh:443
 
       - name: Set up QEMU for multi-arch testing
-        if: matrix.runner == 'ubuntu-latest'
+        if: matrix.runner == 'ubuntu-24.04'
         uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # tag=v3.3.0
         with:
           platforms: all

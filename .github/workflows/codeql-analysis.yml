@@ -33,7 +33,7 @@ jobs:
     name: Run diagnostics
     # This job does not need any permissions
     permissions: {}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # Note that a duplicate of this step must be added at the top of
       # each job.
@@ -69,7 +69,7 @@ jobs:
     name: Analyze
     needs:
       - diagnostics
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       # actions/checkout needs this to fetch code
       contents: read

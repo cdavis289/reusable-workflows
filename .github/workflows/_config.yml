@@ -26,7 +26,7 @@ on: # yamllint disable-line rule:truthy
 jobs:
   config:
     name: Configuration
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Placeholder
         run: echo "Configuration workflow"

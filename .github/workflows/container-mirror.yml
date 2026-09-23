@@ -56,7 +56,7 @@ on: # yamllint disable-line rule:truthy
 jobs:
   mirror:
     name: Mirror Container Images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     permissions:
       contents: read

@@ -24,7 +24,7 @@ jobs:
     name: Run diagnostics
     # This job does not need any permissions
     permissions: {}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # Note that a duplicate of this step must be added at the top of
       # each job.
@@ -63,7 +63,7 @@ jobs:
       # Permissions required by actions/labeler
       contents: read
       pull-requests: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Apply standard cisagov job preamble
         uses: cisagov/action-job-preamble@f3e1d43556bc9fef1fa4d6f27fa88b1b5c82c788 # tag=v1.2.0

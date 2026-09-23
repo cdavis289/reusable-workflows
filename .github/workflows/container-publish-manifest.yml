@@ -82,7 +82,7 @@ jobs:
   publish:
     name: Publish Manifest
     needs: metadata
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     permissions:
       actions: read
