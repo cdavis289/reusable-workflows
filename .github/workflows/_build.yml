@@ -183,3 +183,66 @@ jobs:
     secrets:
       docker_password: ${{ secrets.DOCKER_PASSWORD }}
       docker_username: ${{ secrets.DOCKER_USERNAME }}
+  ci-gate:
+    name: CI Gate
+    needs:
+      - config
+      - lint
+      - diagnostics
+      - build
+      - build-private
+      - test
+      - test-private
+      - publish-manifest
+      - publish-manifest-private
+      - mirror-to-dockerhub
+      - publish-readme
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify required jobs
+        env:
+          CONFIG: ${{ needs.config.result }}
+          LINT: ${{ needs.lint.result }}
+          DIAGNOSTICS: ${{ needs.diagnostics.result }}
+          BUILD: ${{ needs.build.result }}
+          BUILD_PRIVATE: ${{ needs.build-private.result }}
+          TEST: ${{ needs.test.result }}
+          TEST_PRIVATE: ${{ needs.test-private.result }}
+          PUBLISH_MANIFEST: ${{ needs.publish-manifest.result }}
+          PUBLISH_MANIFEST_PRIVATE: ${{ needs.publish-manifest-private.result }}
+          MIRROR_TO_DOCKERHUB: ${{ needs.mirror-to-dockerhub.result }}
+          PUBLISH_README: ${{ needs.publish-readme.result }}
+        run: |
+          set -Eeuo pipefail
+
+          failed=0
+
+          check_result() {
+            local name="$1"
+            local result="$2"
+
+            case "$result" in
+              success|skipped)
+                echo "✓ ${name}: ${result}"
+                ;;
+              *)
+                echo "::error::${name}: ${result}"
+                failed=1
+                ;;
+            esac
+          }
+
+          check_result "Config" "$CONFIG"
+          check_result "Lint" "$LINT"
+          check_result "Diagnostics" "$DIAGNOSTICS"
+          check_result "Build" "$BUILD"
+          check_result "Build Private" "$BUILD_PRIVATE"
+          check_result "Test" "$TEST"
+          check_result "Test Private" "$TEST_PRIVATE"
+          check_result "Publish Manifest" "$PUBLISH_MANIFEST"
+          check_result "Publish Manifest Private" "$PUBLISH_MANIFEST_PRIVATE"
+          check_result "Mirror to DockerHub" "$MIRROR_TO_DOCKERHUB"
+          check_result "Publish README" "$PUBLISH_README"
+
+          exit "$failed"
