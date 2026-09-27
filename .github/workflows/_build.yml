@@ -14,8 +14,6 @@ on: # yamllint disable-line rule:truthy
     types:
       - edited
       - published
-  schedule:
-    - cron: 0 10 * * * # everyday at 10am
   workflow_dispatch:
 
 concurrency:
@@ -63,25 +61,6 @@ jobs:
       dockerfile: ./Dockerfile
       scan-severity: CRITICAL,HIGH
 
-  build-private:
-    name: Build and Publish Container Private
-    needs:
-      - config
-      - lint
-      - diagnostics
-    if: |
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
-    uses: ./.github/workflows/container-build.yml
-    with:
-      platforms: ${{ needs.config.outputs.platforms }}
-      image-name: ${{ needs.config.outputs.image_name }}-hid
-      context: .
-      dockerfile: ./Dockerfile
-      scan-severity: CRITICAL,HIGH
-    secrets:
-      private-package-token: ${{ secrets.PRIVATE_PACKAGE_TOKEN }}
-
   test:
     name: Test Container
     needs:
@@ -95,22 +74,6 @@ jobs:
     with:
       image-name: ${{ needs.config.outputs.image_name }}
       platforms: ${{ needs.config.outputs.test_platforms }}
-
-  test-private:
-    name: Test Container Private
-    needs:
-      - config
-      - build-private
-    uses: ./.github/workflows/container-test.yml
-    permissions:
-      actions: read
-      contents: read
-      packages: read
-    with:
-      image-name: ${{ needs.config.outputs.image_name }}-hid
-      platforms: ${{ needs.config.outputs.test_platforms }}
-    secrets:
-      registry-token: ${{ secrets.PRIVATE_PACKAGE_TOKEN }}
 
   publish-manifest:
     name: Publish Manifest
@@ -129,60 +92,6 @@ jobs:
       image-name: ${{ needs.config.outputs.image_name }}
       platforms: ${{ needs.config.outputs.platforms }}
 
-  publish-manifest-private:
-    name: Publish Manifest Private
-    needs:
-      - config
-      - build-private
-      - test-private
-    uses: ./.github/workflows/container-publish-manifest.yml
-    permissions:
-      actions: read
-      contents: read
-      packages: write
-      id-token: write
-      attestations: write
-    with:
-      image-name: ${{ needs.config.outputs.image_name }}-hid
-      platforms: ${{ needs.config.outputs.platforms }}
-    secrets:
-      private-package-token: ${{ secrets.PRIVATE_PACKAGE_TOKEN }}
-
-  mirror-to-dockerhub:
-    name: Mirror images to DockerHub
-    needs:
-      - publish-manifest
-      - publish-manifest-private
-      - config
-    if: github.event_name == 'release' && !github.event.release.prerelease
-    permissions:
-      contents: read
-      packages: read
-    uses: ./.github/workflows/container-mirror.yml
-    with:
-      image_name: ${{ needs.config.outputs.image_name }}
-      image_tag_names: ${{ needs.publish-manifest.outputs.image-tag-names }}
-      target_registry: docker.io
-    secrets:
-      target-registry-username: ${{ secrets.DOCKER_USERNAME }}
-      target-registry-password: ${{ secrets.DOCKER_PASSWORD }}
-
-  publish-readme:
-    name: Publish docs to DockerHub
-    needs:
-      - publish-manifest
-      - publish-manifest-private
-      - config
-    if: |
-      github.event_name == 'release' &&
-      !github.event.release.prerelease &&
-      needs.publish-manifest.outputs.is-latest == 'true'
-    uses: ./.github/workflows/dockerhub-description.yml
-    with:
-      image_name: ${{ needs.config.outputs.image_name }}
-    secrets:
-      docker_password: ${{ secrets.DOCKER_PASSWORD }}
-      docker_username: ${{ secrets.DOCKER_USERNAME }}
   ci-gate:
     name: CI Gate
     needs:
@@ -190,13 +99,8 @@ jobs:
       - lint
       - diagnostics
       - build
-      - build-private
       - test
-      - test-private
       - publish-manifest
-      - publish-manifest-private
-      - mirror-to-dockerhub
-      - publish-readme
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     steps:
@@ -206,13 +110,8 @@ jobs:
           LINT: ${{ needs.lint.result }}
           DIAGNOSTICS: ${{ needs.diagnostics.result }}
           BUILD: ${{ needs.build.result }}
-          BUILD_PRIVATE: ${{ needs.build-private.result }}
           TEST: ${{ needs.test.result }}
-          TEST_PRIVATE: ${{ needs.test-private.result }}
           PUBLISH_MANIFEST: ${{ needs.publish-manifest.result }}
-          PUBLISH_MANIFEST_PRIVATE: ${{ needs.publish-manifest-private.result }}
-          MIRROR_TO_DOCKERHUB: ${{ needs.mirror-to-dockerhub.result }}
-          PUBLISH_README: ${{ needs.publish-readme.result }}
         run: |
           set -Eeuo pipefail
 
@@ -237,12 +136,7 @@ jobs:
           check_result "Lint" "$LINT"
           check_result "Diagnostics" "$DIAGNOSTICS"
           check_result "Build" "$BUILD"
-          check_result "Build Private" "$BUILD_PRIVATE"
           check_result "Test" "$TEST"
-          check_result "Test Private" "$TEST_PRIVATE"
           check_result "Publish Manifest" "$PUBLISH_MANIFEST"
-          check_result "Publish Manifest Private" "$PUBLISH_MANIFEST_PRIVATE"
-          check_result "Mirror to DockerHub" "$MIRROR_TO_DOCKERHUB"
-          check_result "Publish README" "$PUBLISH_README"
 
           exit "$failed"
