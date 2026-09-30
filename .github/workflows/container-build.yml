@@ -492,6 +492,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ steps.cache-scope.outputs.scope }}
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
+          pull: true
           labels: ${{ needs.metadata.outputs.image-labels }}
           outputs: type=image,name=ghcr.io/${{ inputs.image-name
             }},push-by-digest=true,name-canonical=true,push=${{ inputs.push }}
