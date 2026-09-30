@@ -2,7 +2,7 @@
 FROM --platform=$BUILDPLATFORM tonistiigi/xx:latest AS xx
 
 # Base image for the build
-FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/rust:trixie AS build
+FROM --platform=$BUILDPLATFORM docker.io/library/rust:trixie AS build
 
 # Copy the xx scripts for setting up the cross-compilation environment
 COPY --from=xx / /
