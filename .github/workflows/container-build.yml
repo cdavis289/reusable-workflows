@@ -605,7 +605,7 @@ jobs:
           ignore-unfixed: true
           # pip's embedded SBOM lists setuptools 70.3.0; independently
           # installed package metadata remains subject to vulnerability scans.
-          skip-files: '**/pip/_vendor/bom.cdx.json'
+          skip-files: "**/pip/_vendor/bom.cdx.json"
           image-ref: ghcr.io/${{ inputs.image-name }}@${{ steps.build.outputs.digest }}
           limit-severities-for-sarif: true
           output: trivy-results-${{ strategy.job-index }}.sarif
@@ -625,7 +625,7 @@ jobs:
           ignore-unfixed: false
           # pip's embedded SBOM lists setuptools 70.3.0; independently
           # installed package metadata remains subject to vulnerability scans.
-          skip-files: '**/pip/_vendor/bom.cdx.json'
+          skip-files: "**/pip/_vendor/bom.cdx.json"
           image-ref: ghcr.io/${{ inputs.image-name }}@${{ steps.build.outputs.digest }}
           output: trivy-results-${{ strategy.job-index }}.json
           vuln-type: os,library
@@ -641,7 +641,7 @@ jobs:
           ignore-unfixed: false
           # pip's embedded SBOM lists setuptools 70.3.0; independently
           # installed package metadata remains subject to vulnerability scans.
-          skip-files: '**/pip/_vendor/bom.cdx.json'
+          skip-files: "**/pip/_vendor/bom.cdx.json"
           image-ref: ghcr.io/${{ inputs.image-name }}@${{ steps.build.outputs.digest }}
           vuln-type: os,library
 
