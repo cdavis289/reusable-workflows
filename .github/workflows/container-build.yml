@@ -603,6 +603,9 @@ jobs:
           exit-code: ${{ inputs.scan-severity != '' && '1' || '0' }}
           format: sarif
           ignore-unfixed: true
+          # pip's embedded SBOM lists setuptools 70.3.0; independently
+          # installed package metadata remains subject to vulnerability scans.
+          skip-files: "**/pip/_vendor/bom.cdx.json"
           image-ref: ghcr.io/${{ inputs.image-name }}@${{ steps.build.outputs.digest }}
           limit-severities-for-sarif: true
           output: trivy-results-${{ strategy.job-index }}.sarif
@@ -618,7 +621,11 @@ jobs:
           version: v0.74.0
           exit-code: 0
           format: json
-          ignore-unfixed: true
+          # Retain unfixable findings for audit and prioritization.
+          ignore-unfixed: false
+          # pip's embedded SBOM lists setuptools 70.3.0; independently
+          # installed package metadata remains subject to vulnerability scans.
+          skip-files: "**/pip/_vendor/bom.cdx.json"
           image-ref: ghcr.io/${{ inputs.image-name }}@${{ steps.build.outputs.digest }}
           output: trivy-results-${{ strategy.job-index }}.json
           vuln-type: os,library
@@ -630,7 +637,11 @@ jobs:
           version: v0.74.0
           exit-code: 0
           format: table
-          ignore-unfixed: true
+          # Retain unfixable findings for audit and prioritization.
+          ignore-unfixed: false
+          # pip's embedded SBOM lists setuptools 70.3.0; independently
+          # installed package metadata remains subject to vulnerability scans.
+          skip-files: "**/pip/_vendor/bom.cdx.json"
           image-ref: ghcr.io/${{ inputs.image-name }}@${{ steps.build.outputs.digest }}
           vuln-type: os,library
 
@@ -646,6 +657,7 @@ jobs:
             }}
           path: |
             trivy-results-${{ strategy.job-index }}.sarif
+            trivy-results-${{ strategy.job-index }}.json
           retention-days: 30
 
       - name: Upload SARIF to GitHub Security
