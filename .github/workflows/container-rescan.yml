@@ -1,0 +1,158 @@
+---
+name: Container SBOM Rescan
+
+# Adapted from felddy/reusable-workflows container-rescan.yml (v6).
+# Verify the original GitHub SPDX attestation before scanning its predicate.
+permissions: {}
+
+on:  # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      image-name:
+        description: GHCR image name without registry
+        required: true
+        type: string
+      tag:
+        description: Published image tag
+        required: true
+        type: string
+      arch:
+        description: Linux architecture
+        required: true
+        type: string
+      vex-file:
+        description: Optional reviewed OpenVEX file in caller repository
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  rescan:
+    name: Verify and scan SBOM
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: read
+      attestations: read
+      security-events: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      IMAGE: ghcr.io/${{ inputs.image-name }}
+      TAG: ${{ inputs.tag }}
+      ARCH: ${{ inputs.arch }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # tag=v2.21.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout scan policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # tag=v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Log in to registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f  # tag=v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Resolve platform digest
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=$(docker buildx imagetools inspect --raw "$IMAGE:$TAG")
+          digest=$(jq -er --arg arch "$ARCH" '
+            [.manifests[] | select(.platform.os == "linux"
+              and .platform.architecture == $arch) | .digest]
+            | if length == 1 then .[0] else error("Expected one platform digest") end
+          ' <<< "$manifest")
+          [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          echo "ref=$IMAGE@$digest" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Scanning $IMAGE:$TAG ($ARCH): $digest" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify and extract SPDX attestation
+        env:
+          IMAGE_REF: ${{ steps.resolve.outputs.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh attestation verify "oci://$IMAGE_REF" \
+            --repo "$GITHUB_REPOSITORY" \
+            --predicate-type https://spdx.dev/Document/v2.3 \
+            --format json > verified.json
+          jq -e '.[0].verificationResult.statement.predicate
+            | select(.spdxVersion and (.packages | length > 0))' \
+            verified.json > sbom.spdx.json
+          jq -e '.packages | length > 0' sbom.spdx.json > /dev/null
+
+      - name: Install checksum-pinned Grype
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset=grype_0.122.1_linux_amd64.tar.gz
+          curl --fail --silent --show-error --location --retry 3 \
+            "https://github.com/anchore/grype/releases/download/v0.122.1/$asset" \
+            --output "$RUNNER_TEMP/$asset"
+          echo "f1ba7e2917ee1395618de20a98da0aa7c0fb1788927797651047c50502a37538  $RUNNER_TEMP/$asset" \
+            | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/grype-bin"
+          tar -xzf "$RUNNER_TEMP/$asset" -C "$RUNNER_TEMP/grype-bin" grype
+          echo "$RUNNER_TEMP/grype-bin" >> "$GITHUB_PATH"
+
+      - name: Scan SBOM
+        shell: bash
+        env:
+          VEX_FILE: ${{ inputs.vex-file }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [[ -n "$VEX_FILE" ]]; then
+            test -f "$VEX_FILE"
+            args+=(--vex "$VEX_FILE")
+          fi
+          grype version
+          # Audit all findings, including those without an available fix.
+          grype "sbom:sbom.spdx.json" "${args[@]}" \
+            -o json=rescan.json -o sarif=rescan.sarif -o table
+          jq -e '(.matches | type) == "array"' rescan.json > /dev/null
+
+      - name: Derive report name
+        id: report
+        shell: bash
+        run: |
+          echo "slug=${IMAGE#ghcr.io/}" | tr '/' '-' >> "$GITHUB_OUTPUT"
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938
+        with:
+          sarif_file: rescan.sarif
+          category: grype-${{ steps.report.outputs.slug }}-${{ inputs.tag }}-${{ inputs.arch }}
+
+      - name: Upload audit reports
+        if: ${{ !cancelled() && hashFiles('rescan.json') != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: grype-${{ steps.report.outputs.slug }}-${{ inputs.tag }}-${{ inputs.arch }}
+          path: |
+            rescan.json
+            rescan.sarif
+            sbom.spdx.json
+          retention-days: 30
+
+      - name: Enforce fixable HIGH and CRITICAL threshold
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=$(jq '[.matches[] | select(
+            (.vulnerability.severity | ascii_downcase) as $s
+            | ($s == "high" or $s == "critical")
+            and .vulnerability.fix.state == "fixed")] | length' rescan.json)
+          echo "Fixable HIGH/CRITICAL findings: $count" >> "$GITHUB_STEP_SUMMARY"
+          if (( count > 0 )); then
+            echo "::error::$count fixable HIGH/CRITICAL vulnerabilities found"
+            exit 1
+          fi
