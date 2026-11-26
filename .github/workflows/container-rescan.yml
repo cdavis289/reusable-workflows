@@ -120,17 +120,23 @@ jobs:
             -o json=rescan.json -o sarif=rescan.sarif -o table
           jq -e '(.matches | type) == "array"' rescan.json > /dev/null
 
+      - name: Derive report name
+        id: report
+        shell: bash
+        run: |
+          echo "slug=${IMAGE#ghcr.io/}" | tr '/' '-' >> "$GITHUB_OUTPUT"
+
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938
         with:
           sarif_file: rescan.sarif
-          category: grype-${{ inputs.image-name }}-${{ inputs.tag }}-${{ inputs.arch }}
+          category: grype-${{ steps.report.outputs.slug }}-${{ inputs.tag }}-${{ inputs.arch }}
 
       - name: Upload audit reports
         if: ${{ !cancelled() && hashFiles('rescan.json') != '' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: grype-${{ strategy.job-index }}-${{ inputs.tag }}-${{ inputs.arch }}-${{ github.job }}-${{ inputs.image-name == 'cdavis289/weewx' && 'base' || 'overlay' }}
+          name: grype-${{ steps.report.outputs.slug }}-${{ inputs.tag }}-${{ inputs.arch }}
           path: |
             rescan.json
             rescan.sarif
