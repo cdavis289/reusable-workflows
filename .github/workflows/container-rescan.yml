@@ -20,6 +20,10 @@ on:  # yamllint disable-line rule:truthy
         description: Linux architecture
         required: true
         type: string
+      signer-workflow:
+        description: Trusted reusable workflow that signed the SBOM (owner/repo/path)
+        required: true
+        type: string
       vex-file:
         description: Optional reviewed OpenVEX file in caller repository
         required: false
@@ -77,11 +81,13 @@ jobs:
       - name: Verify and extract SPDX attestation
         env:
           IMAGE_REF: ${{ steps.resolve.outputs.ref }}
+          SIGNER_WORKFLOW: ${{ inputs.signer-workflow }}
         shell: bash
         run: |
           set -euo pipefail
           gh attestation verify "oci://$IMAGE_REF" \
             --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$SIGNER_WORKFLOW" \
             --predicate-type https://spdx.dev/Document/v2.3 \
             --format json > verified.json
           jq -e '.[0].verificationResult.statement.predicate
