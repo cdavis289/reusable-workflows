@@ -159,6 +159,17 @@ jobs:
             and .vulnerability.fix.state == "fixed")] | length' rescan.json)
           echo "Fixable HIGH/CRITICAL findings: $count" >> "$GITHUB_STEP_SUMMARY"
           if (( count > 0 )); then
+            jq -r '
+              .matches[]
+              | select(
+                  (.vulnerability.severity | ascii_downcase) as $s
+                  | ($s == "high" or $s == "critical")
+                  and .vulnerability.fix.state == "fixed")
+              | [.vulnerability.id, .vulnerability.severity,
+                 .artifact.name, .artifact.version,
+                 (.vulnerability.fix.versions | join(", "))]
+              | @tsv
+            ' rescan.json | tee -a "$GITHUB_STEP_SUMMARY"
             echo "::error::$count fixable HIGH/CRITICAL vulnerabilities found"
             exit 1
           fi
